@@ -164,10 +164,10 @@ class TestBenchMaker:
         def save_to_db():
             # 数据库连接
             conn = pymysql.connect(
-                    host="localhost",
-                    user="root",
-                    passwd="12100910zsl.",
-                    db="notice",
+                    host="localhost",  //主机名
+                    user="username",   //你的username
+                    passwd="password", //密码
+                    db="db_name",    //数据库名
             )
             value_tuple_save = ()
             status_now = combox0_p2.get()
