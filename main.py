@@ -48,16 +48,20 @@ class TestBenchMaker:
             timeout = (5, 10)
             # 设置代理
             # proxy_1 = '222.74.202.229:8080'
-            proxy_2 = '101.132.186.175:9090'
-            proxies = {
-                    'http': 'http://' + proxy_2,
-                    'https': 'https//' + proxy_2
-                }
+            # proxy_2 = '101.132.186.175:9090'
+            # proxies = {
+            #         'http': 'http://' + proxy_2,
+            #         'https': 'https//' + proxy_2
+            #     }
             # {
             #     'http': 'http://' + proxy_2,
             #     'https': 'https//' + proxy_2
             #     }
+            def get_proxy():
+                return requests.get("http://127.0.0.1:5010/get/").json()
             
+            def delete_proxy(proxy):
+                requests.get("http://127.0.0.1:5010/delete/?proxy={}".format(proxy))
             # 请求头设置
             headers = {
                         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.107 Safari/537.36 Edg/92.0.902.62",
@@ -67,8 +71,16 @@ class TestBenchMaker:
             dumpJsonData = json.dumps(payloadData)
             # 打印解析信息
             # print(f"dumpJsonData = {dumpJsonData}")
-            res = requests.post(url, data=dumpJsonData, headers=headers, timeout=timeout,  allow_redirects=True)
-            return res
+            proxy = get_proxy().get("proxy")
+            retry_count = 5
+            while retry_count >0 :
+                try:
+                    res = requests.post(url, data=dumpJsonData, headers=headers, timeout=timeout,  allow_redirects=True,  proxies={"http": "http://{}".format(proxy)})
+                    return res
+                except Exception:
+                    retry_count -= 1
+            delete_proxy(proxy)
+            return None
         
         
         # 清洗数据，获得字典类型数据
@@ -164,10 +176,10 @@ class TestBenchMaker:
         def save_to_db():
             # 数据库连接
             conn = pymysql.connect(
-                    host="localhost",  //主机名
-                    user="username",   //你的username
-                    passwd="password", //密码
-                    db="db_name",    //数据库名
+                    host="localhost",
+                    user="root",
+                    passwd="12100910zsl.",
+                    db="notice",
             )
             value_tuple_save = ()
             status_now = combox0_p2.get()
