@@ -45,7 +45,7 @@ class TestBenchMaker:
         
         
         def post_url(payloadData):
-            timeout = (5, 10)
+            timeout = 25
             # 设置代理
             # proxy_1 = '222.74.202.229:8080'
             # proxy_2 = '101.132.186.175:9090'
@@ -85,12 +85,14 @@ class TestBenchMaker:
         
         # 清洗数据，获得字典类型数据
         def clear_data(res):
-            html = res.content.decode('utf8')
-            html_dic = json.loads(html)
-            dic_data = html_dic["hits"]
-            final_datas = dic_data["hits"]
-            return final_datas
-
+            try:
+                html = res.content.decode('utf8')
+                html_dic = json.loads(html)
+                dic_data = html_dic["hits"]
+                final_datas = dic_data["hits"]
+                return final_datas
+            except Exception:
+                return None
 
         
         # 时间选择
@@ -106,43 +108,55 @@ class TestBenchMaker:
                         'pageSize': 15}
                 names["res%s" % i] = post_url(names["payloadData%s" % i])
                 final_datas = clear_data(names["res%s" % i])
-                for final_data in final_datas:
-                    data = final_data['_source']
-                    timeStamp = float(data['publishDate']/1000)
-                    # timeStamp_2 = int(data['bidOpeningTime']/1000)
-                    timeArrays = time.localtime(timeStamp)
-                    # timeArrays_2 = time.localtime(timeStamp_2)
-                    publishDate = time.strftime("%Y--%m--%d %H:%M:%S", timeArrays)
-                    # publishDate_Ymd = time.strftime("%Y--%m--%d")
-                    # bidOpeningTime = time.strftime("%Y--%m--%d %H:%M:%S", timeArrays_2)
-                    districtName = data['districtName'].replace("新疆维吾尔自治区本级", '', 1)
-                    title = (data['title'])
-                    f_url = (base_url + data['url'])
-                    
-                    text.tag_config('link>' + f_url)
-                    text.insert('insert', "【" + publishDate + "】" + title + '\n' + '\n', 'link>' + f_url)
-                    text.tag_bind('link>' + f_url, "<Double-Button-1>",
-                                lambda event, f_url=f_url: open_url(event, f_url))
-                # 鼠标左键双击点击打开网页时间绑定
-                    def open_url(event, f_url):
-                        webbrowser.open(f_url, new=0)
+                progress(final_datas,text,None,1000000000,9999999999)
         
         
-        def func(text, ZcyAnnouncement):
-            text.delete('0.0', 'end')
-            val = entry.get()
+        def progress(final_datas,text_p,frame,start_time,end_time):
+            if final_datas:
+                    for final_data in final_datas:
+                        data = final_data['_source']
+                        timeStamp = float(data['publishDate']/1000)
+                        # timeStamp_2 = int(data['bidOpeningTime']/1000)
+                        timeArrays = datetime.datetime.fromtimestamp((timeStamp))
+                        # timeArrays_2 = time.localtime(timeStamp_2)
+                        publishDate = timeArrays.strftime("%Y--%m--%d %H:%M:%S")
+                        # bidOpeningTime = time.strftime("%Y--%m--%d %H:%M:%S", timeArrays_2)
+                        # districtName = data['districtName']
+                        title = (data['title'])
+                        f_url = (base_url + data['url'])
+                        # print(title)
+                        if start_time<=timeStamp<=end_time:
+                            text_p.tag_config('link>'+f_url)                                                      
+                            text_p.insert('insert', "【"+publishDate+"】"+title+'\n'+'\n', 'link>'+f_url)
+                            text_p.tag_bind('link>'+f_url, "<Double-Button-1>", lambda event, f_url = f_url: open_url(event, f_url))
+                            def open_url(event, f_url):
+                                webbrowser.open(f_url, new=0)
+        
+        
+        def func_time(combox_1, combox_2,combox_3,combox_4,combox_5,combox_6):
             value_tuple_func = ()
-            value_tuple_func = value(combox1, combox2,combox3,combox4,combox5,combox6)
+            value_tuple_func = value(combox_1, combox_2,combox_3,combox_4,combox_5,combox_6)
             s1 = value_tuple_func[0]+'-'+value_tuple_func[1]+'-'+value_tuple_func[2]+' 00:00:00'
             s2 = value_tuple_func[3]+'-'+value_tuple_func[4]+'-'+value_tuple_func[5]+' 00:00:00'
 
             start_time = time.mktime(time.strptime(s1, '%Y-%m-%d %H:%M:%S'))
             end_time = time.mktime(time.strptime(s2, '%Y-%m-%d %H:%M:%S'))
+            return start_time,end_time
+        
 
+        def func(text, ZcyAnnouncement):
+            text.delete('0.0', 'end')
+            val = entry.get()
+            value_tuple_func = ()
+            value_tuple_func = func_time(combox1, combox2,combox3,combox4,combox5,combox6)
+            start_time ,end_time= value_tuple_func[0],value_tuple_func[1]
             if(start_time>end_time):
                 messagebox.showwarning(title="警告", message="日期选择错误！")
             # 关键字提交信息
-            for i in range(1, 6):   # 最多显示75条关键字查询公告
+            i = 0
+            final_datas = [1,1]
+            while final_datas:   
+                i += 1   
                 payloadDatakw = {
                     'categoryCode': ZcyAnnouncement,
                     'keyword': f'{val}',
@@ -151,26 +165,7 @@ class TestBenchMaker:
                 }
                 names["res%s" % i] = post_url(payloadDatakw)
                 final_datas = clear_data(names["res%s" % i])
-                for final_data in final_datas:
-                    data = final_data['_source']
-                    timeStamp = float(data['publishDate']/1000)
-                    # timeStamp_2 = int(data['bidOpeningTime']/1000)
-                    timeArrays = datetime.datetime.fromtimestamp((timeStamp))
-                    # timeArrays_2 = time.localtime(timeStamp_2)
-                    publishDate = timeArrays.strftime("%Y--%m--%d %H:%M:%S")
-                    # bidOpeningTime = time.strftime("%Y--%m--%d %H:%M:%S", timeArrays_2)
-                    # districtName = data['districtName']
-                    title = (data['title'])
-                    f_url = (base_url + data['url'])
-                    # print(title)
-                    
-                    if start_time <= timeStamp <= end_time:
-                        text.tag_config('link>'+f_url)
-                        text.insert('insert', "【"+publishDate+"】"+title+'\n'+'\n', 'link>'+f_url)
-                        text.tag_bind('link>'+f_url, "<Double-Button-1>", lambda event, f_url = f_url: open_url(event, f_url))
-                        def open_url(event, f_url):
-                            webbrowser.open(f_url, new=0)
-                        frame1.update()
+                progress(final_datas,text,frame1,start_time,end_time)
                 
                 
         def save_to_db():
@@ -205,17 +200,15 @@ class TestBenchMaker:
                         """%(val)
                         
             text_p2.delete('0.0', 'end')
-            value_tuple_save = value(combox11_p2, combox12_p2,combox13_p2,combox14_p2,combox15_p2,combox16_p2)
-            s1 = value_tuple_save[0]+'-'+value_tuple_save[1]+'-'+value_tuple_save[2]+' 00:00:00'
-            s2 = value_tuple_save[3]+'-'+value_tuple_save[4]+'-'+value_tuple_save[5]+' 00:00:00'
-            start_time = time.mktime(time.strptime(s1, '%Y-%m-%d %H:%M:%S'))
-            end_time = time.mktime(time.strptime(s2, '%Y-%m-%d %H:%M:%S'))
-
+            value_tuple_save = func_time(combox11_p2, combox12_p2,combox13_p2,combox14_p2,combox15_p2,combox16_p2)
+            start_time, end_time = value_tuple_save[0],value_tuple_save[1]
             if start_time>end_time:
                 messagebox.showwarning(title="警告", message="日期选择错误！")
             # 关键字提交信息
-            
-            for i in range(1, 101):   # 最多显示1500条关键字查询公告
+            i = 0
+            final_datas = [1,1]
+            while final_datas:   # 最多显示1500条关键字查询公告
+                i += 1
                 payloadDatakw = {
                             'categoryCode': ZcyAnnouncement_1,
                             'keyword': f'{val}',
@@ -224,34 +217,35 @@ class TestBenchMaker:
                 }
                 names["res%s" % i] = post_url(payloadDatakw)
                 final_datas = clear_data(names["res%s" % i])
-                for final_data in final_datas:
-                    data = final_data['_source']
-                    timeStamp = float(data['publishDate']/1000)
-                # timeStamp_2 = int(data['bidOpeningTime']/1000)
-                    timeArrays = datetime.datetime.fromtimestamp((timeStamp))
-                # timeArrays_2 = time.localtime(timeStamp_2)
-                    publishDate = timeArrays.strftime("%Y--%m--%d %H:%M:%S")
-                # bidOpeningTime = time.strftime("%Y--%m--%d %H:%M:%S", timeArrays_2)
-                # districtName = data['districtName']
-                    title = data['title']
-                    f_url = (base_url + data['url'])
-                    districtName = data['districtName']
-                    gpCatalogName = data['gpCatalogName']
-                    pathName = data['pathName']
-                    # print(title)
-                    if (start_time <= timeStamp <= end_time)&bool(data):                            
-                        cursor1 = conn.cursor()
-                        cursor2 = conn.cursor()
-                        sql = """insert into %s"""%(val) + """(publishDate, pathName, title, districtName, gpCatalogName, url) values(%s, %s, %s, %s, %s, %s)"""
-                        
-                        cursor2.execute(create_sql)
-                        cursor2.close()
-                        rows = cursor1.execute(sql, (publishDate, pathName, title, districtName, gpCatalogName, f_url))
-                        conn.commit()
-                        cursor1.close()
-                        # time.sleep(1) 
-                progress_bar['value'] += 1
-                frame2.update()
+                if final_datas:
+                    for final_data in final_datas:
+                        data = final_data['_source']
+                        timeStamp = float(data['publishDate']/1000)
+                    # timeStamp_2 = int(data['bidOpeningTime']/1000)
+                        timeArrays = datetime.datetime.fromtimestamp((timeStamp))
+                    # timeArrays_2 = time.localtime(timeStamp_2)
+                        publishDate = timeArrays.strftime("%Y--%m--%d %H:%M:%S")
+                    # bidOpeningTime = time.strftime("%Y--%m--%d %H:%M:%S", timeArrays_2)
+                    # districtName = data['districtName']
+                        title = data['title']
+                        f_url = (base_url + data['url'])
+                        districtName = data['districtName']
+                        gpCatalogName = data['gpCatalogName']
+                        pathName = data['pathName']
+                        # print(title)
+                        if (start_time <= timeStamp <= end_time)&bool(data):                            
+                            cursor1 = conn.cursor()
+                            cursor2 = conn.cursor()
+                            sql = """insert into %s"""%(val) + """(publishDate, pathName, title, districtName, gpCatalogName, url) values(%s, %s, %s, %s, %s, %s)"""
+                            
+                            cursor2.execute(create_sql)
+                            cursor2.close()
+                            rows = cursor1.execute(sql, (publishDate, pathName, title, districtName, gpCatalogName, f_url))
+                            conn.commit()
+                            cursor1.close()
+                            # time.sleep(1) 
+                    progress_bar['value'] += 1
+                    frame2.update()
 
             if rows!=0:
                 messagebox.showinfo(title='恭喜！', message="保存成功")
@@ -259,26 +253,25 @@ class TestBenchMaker:
                 messagebox.showerror()(title='Error!', message="保存失败")                    
             conn.close()
             
-            
-            
+                
         def function_p2():
             if combox0_p2.get() == "(进行中)":
                 ZcyAnnouncement_1 = ZcyAnnouncement[0]
             if combox0_p2.get() == "(已结束)":
                 ZcyAnnouncement_1 = ZcyAnnouncement[1]
-            value_tuple_function_p2 = ()    
-            val = update()
+            
+            val = update()  
             text_p2.delete('0.0', 'end')
-            value_tuple_function_p2 = value(combox11_p2, combox12_p2,combox13_p2,combox14_p2,combox15_p2,combox16_p2)
-            s1 = value_tuple_function_p2[0]+'-'+value_tuple_function_p2[1]+'-'+value_tuple_function_p2[2]+' 00:00:00'
-            s2 = value_tuple_function_p2[3]+'-'+value_tuple_function_p2[4]+'-'+value_tuple_function_p2[5]+' 00:00:00'
-            start_time = time.mktime(time.strptime(s1, '%Y-%m-%d %H:%M:%S'))
-            end_time = time.mktime(time.strptime(s2, '%Y-%m-%d %H:%M:%S'))
-
+            value_tuple_function_p2 = ()
+            value_tuple_function_p2 = func_time(combox11_p2, combox12_p2,combox13_p2,combox14_p2,combox15_p2,combox16_p2)
+            start_time, end_time = value_tuple_function_p2[0], value_tuple_function_p2[1]
             if(start_time>end_time):
                 messagebox.showwarning(title="警告", message="日期选择错误！")
             # 关键字提交信息
-            for i in range(1, 6):   # 最多显示75条关键字查询公告
+            i = 0
+            final_datas = [1,1]
+            while final_datas:   
+                i += 1      # 最多显示75条关键字查询公告
                 payloadDatakw = {
                             'categoryCode': ZcyAnnouncement_1,
                             'keyword': f'{val}',
@@ -287,30 +280,11 @@ class TestBenchMaker:
                 }
                 names["res%s" % i] = post_url(payloadDatakw)
                 final_datas = clear_data(names["res%s" % i])
-                for final_data in final_datas:
-                    data = final_data['_source']
-                    timeStamp = float(data['publishDate']/1000)
-                    # timeStamp_2 = int(data['bidOpeningTime']/1000)
-                    timeArrays = datetime.datetime.fromtimestamp((timeStamp))
-                    # timeArrays_2 = time.localtime(timeStamp_2)
-                    publishDate = timeArrays.strftime("%Y--%m--%d %H:%M:%S")
-                    # bidOpeningTime = time.strftime("%Y--%m--%d %H:%M:%S", timeArrays_2)
-                    # districtName = data['districtName']
-                    title = (data['title'])
-                    f_url = (base_url + data['url'])
-                    # print(title)
-                    if start_time<=timeStamp<=end_time:
-                        text_p2.tag_config('link>'+f_url)                                                      
-                        text_p2.insert('insert', "【"+publishDate+"】"+title+'\n'+'\n', 'link>'+f_url)
-                        text_p2.tag_bind('link>'+f_url, "<Double-Button-1>", lambda event, f_url = f_url: open_url(event, f_url))
-
-                    def open_url(event, f_url):
-                        webbrowser.open(f_url, new=0)
-                    frame2.update()
+                progress(final_datas,text_p2,frame2,start_time,end_time)
         
-        def get_subword_list():
-            cmd = 'notepad subscribe_keyword.txt'
-            os.system(cmd)
+        # def get_subword_list():
+        #     cmd = 'notepad subscribe_keyword.txt'
+        #     os.system(cmd)
         
         def subscribe():
             # 文件操作
@@ -600,5 +574,14 @@ class TestBenchMaker:
         window.mainloop()
 
 if __name__ == "__main__":
-    tbm = TestBenchMaker()
-    tbm.initialGUI()
+    def server():
+        os.system('D:/Enviroment/Python/python.exe C:/Users/13368/Desktop/XJZFCG/proxy_pool-2.3.0/proxyPool.py server')
+    def init():
+        tbm = TestBenchMaker()
+        tbm.initialGUI()
+        
+    t1 = threading.Thread(target=server)
+    t2 = threading.Thread(target=init)
+    t1.start()
+    time.sleep(1)
+    t2.start()
